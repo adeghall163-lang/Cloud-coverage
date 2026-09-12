@@ -1,192 +1,39 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>WS15 Cloud Cover</title>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WS15 Solar Forecast</title>
 <style>
-  :root{
-    --bg:#ffffff;
-    --text:#111111;
-    --grid:#d9d9d9;
-    --line:#4a4a4a;
-    --fill:#b9c7d6;
-    --now:#111111;
-  }
-  html,body{
-    margin:0;
-    padding:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:Arial,Helvetica,sans-serif;
-    overflow:hidden;
-  }
-  #wrap{
-    width:100vw;
-    height:25vh;
-    min-height:150px;
-    max-height:230px;
-    box-sizing:border-box;
-    padding:10px 12px 8px;
-    display:flex;
-    flex-direction:column;
-  }
-  #top{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:2px;
-  }
-  #title{
-    font-size:clamp(16px,2vw,24px);
-    font-weight:700;
-    letter-spacing:.3px;
-  }
-  #status{
-    font-size:clamp(11px,1.5vw,16px);
-    color:#555;
-    white-space:nowrap;
-  }
-  canvas{
-    flex:1;
-    width:100%;
-    min-height:0;
-    display:block;
-  }
-</style>
-</head>
-<body>
-<div id="wrap">
-  <div id="top">
-    <div id="title">WS15 CLOUD COVER — TODAY</div>
-    <div id="status">Loading…</div>
-  </div>
-  <canvas id="c"></canvas>
-</div>
-
+html,body{margin:0;background:white;font-family:Arial,sans-serif;overflow:hidden}
+#wrap{width:100vw;height:25vh;min-height:150px;max-height:230px;box-sizing:border-box;padding:10px 12px 8px;display:flex;flex-direction:column}
+#top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+#title{font-size:clamp(16px,2vw,24px);font-weight:bold}#status{font-size:clamp(11px,1.5vw,16px);color:#555}
+canvas{flex:1;width:100%;min-height:0}
+</style></head><body><div id="wrap"><div id="top"><div id="title">WS15 SOLAR FORECAST — TODAY</div><div id="status">Loading…</div></div><canvas id="c"></canvas></div>
 <script>
-const LAT = 52.75;
-const LON = -1.93;
-const TZ  = "Europe/London";
-const API = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=cloud_cover&timezone=${encodeURIComponent(TZ)}&forecast_days=1`;
-
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const statusEl = document.getElementById('status');
-
-function resize(){
-  const r = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.max(1, Math.round(r.width*dpr));
-  canvas.height = Math.max(1, Math.round(r.height*dpr));
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+const LAT=52.75,LON=-1.93,TZ="Europe/London";
+const API=`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&minutely_15=shortwave_radiation&timezone=${encodeURIComponent(TZ)}&forecast_days=1`;
+const c=document.getElementById("c"),x=c.getContext("2d"),st=document.getElementById("status");
+let D=null;
+function resize(){let r=c.getBoundingClientRect(),d=devicePixelRatio||1;c.width=r.width*d;c.height=r.height*d;x.setTransform(d,0,0,d,0,0)}
+function ceilScale(v){return v<=250?250:v<=500?500:v<=750?750:1000}
+function draw(d){
+ D=d;resize();let W=c.getBoundingClientRect().width,H=c.getBoundingClientRect().height;
+ let L=50,R=12,T=14,B=40,X0=L,X1=W-R,Y0=T,Y1=H-B,PW=X1-X0,PH=Y1-Y0;
+ let vals=d.minutely_15.shortwave_radiation,times=d.minutely_15.time.map(q=>new Date(q)),YM=ceilScale(Math.max(...vals,1));
+ x.clearRect(0,0,W,H);x.font=`${Math.max(9,Math.min(13,W/65))}px Arial`;x.lineWidth=1;x.strokeStyle="#ddd";x.fillStyle="#444";
+ x.textAlign="right";x.textBaseline="middle";
+ [0,.25,.5,.75,1].forEach(f=>{let y=Y1-f*PH;x.beginPath();x.moveTo(X0,y);x.lineTo(X1,y);x.stroke();x.fillText(Math.round(YM*f),X0-6,y)});
+ x.save();x.translate(11,(Y0+Y1)/2);x.rotate(-Math.PI/2);x.textAlign="center";x.fillText("W/m²",0,0);x.restore();
+ x.textAlign="center";x.textBaseline="top";
+ for(let h=0;h<=21;h+=3){let q=X0+h/24*PW;x.beginPath();x.moveTo(q,Y0);x.lineTo(q,Y1);x.stroke();x.fillText(String(h).padStart(2,"0")+":00",q,Y1+7)}
+ let pos=times.map(t=>(t.getHours()*60+t.getMinutes())/1440);
+ x.beginPath();vals.forEach((v,i)=>{let q=X0+pos[i]*PW,y=Y1-v/YM*PH;i?x.lineTo(q,y):x.moveTo(q,y)});
+ x.lineTo(X0+pos[pos.length-1]*PW,Y1);x.lineTo(X0+pos[0]*PW,Y1);x.closePath();x.fillStyle="rgba(255, 215, 40, 0.48)";x.fill();
+ x.beginPath();vals.forEach((v,i)=>{let q=X0+pos[i]*PW,y=Y1-v/YM*PH;i?x.lineTo(q,y):x.moveTo(q,y)});
+ x.strokeStyle="#ffb300";x.lineWidth=3;x.stroke();
+ let n=new Date(),m=n.getHours()*60+n.getMinutes(),q=X0+m/1440*PW;
+ x.strokeStyle="#111";x.setLineDash([5,5]);x.beginPath();x.moveTo(q,Y0);x.lineTo(q,Y1);x.stroke();x.setLineDash([]);
+ x.fillStyle="#111";x.textAlign="center";x.textBaseline="bottom";x.fillText("NOW",Math.min(X1-18,Math.max(X0+18,q)),Y0-1);
+ let k=0,b=1e20;times.forEach((t,i)=>{let z=Math.abs(t-n);if(z<b){b=z;k=i}});st.textContent=`Now ${Math.round(vals[k])} W/m²`;
 }
-window.addEventListener('resize', ()=>{ resize(); if(window.lastData) draw(window.lastData); });
-
-function draw(data){
-  window.lastData = data;
-  resize();
-  const W = canvas.getBoundingClientRect().width;
-  const H = canvas.getBoundingClientRect().height;
-
-  ctx.clearRect(0,0,W,H);
-
-  const ml = 42, mr = 12, mt = 12, mb = 42;
-  const x0 = ml, y0 = mt, x1 = W-mr, y1 = H-mb;
-  const pw = x1-x0, ph = y1-y0;
-
-  // horizontal grid: 0,25,50,75,100 %
-  ctx.font = `${Math.max(11, Math.min(16, W/50))}px Arial`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
-  ctx.strokeStyle = "#d9d9d9";
-  ctx.fillStyle = "#444";
-  ctx.lineWidth = 1;
-
-  [0,25,50,75,100].forEach(v=>{
-    const y = y1 - (v/100)*ph;
-    ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
-    ctx.fillText(v+"%", x0-6, y);
-  });
-
-  const vals = data.hourly.cloud_cover;
-  const times = data.hourly.time.map(t=>new Date(t));
-
-  // vertical time grid and labels every 3 hours
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  ctx.font = `${Math.max(9, Math.min(13, W/65))}px Arial`;
-  for(let h=0; h<=21; h+=3){
-    const x = x0 + (h/23)*pw;
-    ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1); ctx.stroke();
-    ctx.fillText(String(h).padStart(2,"0")+":00", x, y1+7);
-  }
-
-  // filled cloud-cover area
-  ctx.beginPath();
-  vals.forEach((v,i)=>{
-    const x = x0 + (i/(vals.length-1))*pw;
-    const y = y1 - (v/100)*ph;
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.lineTo(x1,y1); ctx.lineTo(x0,y1); ctx.closePath();
-  ctx.fillStyle = "#b9c7d6";
-  ctx.fill();
-
-  // line
-  ctx.beginPath();
-  vals.forEach((v,i)=>{
-    const x = x0 + (i/(vals.length-1))*pw;
-    const y = y1 - (v/100)*ph;
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.strokeStyle = "#4a4a4a";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // current-time marker
-  const now = new Date();
-  const mins = now.getHours()*60 + now.getMinutes();
-  const frac = mins/(24*60-1);
-  if(frac >= 0 && frac <= 1){
-    const x = x0 + frac*pw;
-    ctx.strokeStyle = "#111";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5,5]);
-    ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = "#111";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
-    ctx.fillText("NOW", Math.min(x1-18,Math.max(x0+18,x)), y0-1);
-  }
-
-  // nearest current cloud cover in status
-  let nearest = 0, best = Infinity;
-  times.forEach((t,i)=>{
-    const d = Math.abs(t-now);
-    if(d<best){best=d;nearest=i;}
-  });
-  statusEl.textContent = `Now ${vals[nearest]}% cloud`;
-}
-
-async function load(){
-  try{
-    statusEl.textContent = "Loading…";
-    const r = await fetch(API, {cache:"no-store"});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const data = await r.json();
-    draw(data);
-  }catch(e){
-    statusEl.textContent = "No weather data";
-    console.error(e);
-  }
-}
-
-load();
-setInterval(load, 30*60*1000);
-setInterval(()=>{ if(window.lastData) draw(window.lastData); }, 60*1000);
-</script>
-</body>
-</html>
+async function load(){try{st.textContent="Loading…";let r=await fetch(API,{cache:"no-store"});if(!r.ok)throw 0;draw(await r.json())}catch(e){st.textContent="No forecast data"}}
+window.addEventListener("resize",()=>D&&draw(D));load();setInterval(load,1800000);setInterval(()=>D&&draw(D),60000);
+</script></body></html>
