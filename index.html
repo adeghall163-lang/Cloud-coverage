@@ -1,192 +1,64 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>WS15 Cloud Cover</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WS15 Solar — Compact PV Forecast</title>
 <style>
-  :root{
-    --bg:#ffffff;
-    --text:#111111;
-    --grid:#d9d9d9;
-    --line:#4a4a4a;
-    --fill:#b9c7d6;
-    --now:#111111;
-  }
-  html,body{
-    margin:0;
-    padding:0;
-    background:var(--bg);
-    color:var(--text);
-    font-family:Arial,Helvetica,sans-serif;
-    overflow:hidden;
-  }
-  #wrap{
-    width:100vw;
-    height:25vh;
-    min-height:150px;
-    max-height:230px;
-    box-sizing:border-box;
-    padding:10px 12px 8px;
-    display:flex;
-    flex-direction:column;
-  }
-  #top{
-    display:flex;
-    align-items:baseline;
-    justify-content:space-between;
-    gap:12px;
-    margin-bottom:2px;
-  }
-  #title{
-    font-size:clamp(16px,2vw,24px);
-    font-weight:700;
-    letter-spacing:.3px;
-  }
-  #status{
-    font-size:clamp(11px,1.5vw,16px);
-    color:#555;
-    white-space:nowrap;
-  }
-  canvas{
-    flex:1;
-    width:100%;
-    min-height:0;
-    display:block;
-  }
+:root{color-scheme:dark;--bg:#10171d;--panel:#17232b;--text:#e8f0f2;--muted:#9cb1bb;--gold:#ffd43b;--grid:#34434a}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px system-ui,-apple-system,Segoe UI,Arial,sans-serif}.wrap{max-width:1080px;margin:auto;padding:14px}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.eyebrow{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}h1{font-size:21px;margin:3px 0 4px;font-weight:650}.sub{color:var(--muted);font-size:12px}.controls{display:flex;align-items:center;gap:6px}button{background:#25343c;border:1px solid #42545d;color:var(--text);border-radius:7px;padding:7px 11px;cursor:pointer}button.active{background:#5b4b18;border-color:#d1ac24;color:#fff4bc}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:13px 0}.metric{background:var(--panel);border:1px solid #293a42;border-radius:10px;padding:10px 12px}.metric .name{color:var(--muted);font-size:11px}.metric .value{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:3px}.metric .unit{font-size:12px;font-weight:400;color:var(--muted)}.chartbox{background:var(--panel);border:1px solid #293a42;border-radius:10px;padding:10px;position:relative}canvas{display:block;width:100%;height:310px}.legend{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:11px;color:var(--muted);padding:5px 3px}.swatch{display:inline-block;width:16px;height:8px;margin-right:5px;border-radius:2px;background:#ffd43b}.swatch.cloud{background:#879ba3;opacity:.7}.status{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5}.status.error{color:#ffb2a6}.details{font-size:11px;color:var(--muted);margin-top:7px}a{color:#c8dfff}@media(max-width:550px){.wrap{padding:9px}h1{font-size:17px}.metric{padding:8px}.metric .value{font-size:18px}canvas{height:260px}.controls button{padding:6px 8px}}
+
+/* Compact Virtuino dashboard tile */
+html,body{width:100%;height:100%;overflow:hidden}
+.wrap{padding:5px 7px;max-width:none}
+.top{gap:3px;flex-wrap:nowrap;align-items:center}
+.eyebrow,.sub,.details{display:none}
+h1{font-size:13px;line-height:1.1;margin:0}
+.controls{gap:3px;flex-shrink:0}
+button,.controls button{padding:3px 5px;font-size:10px;border-radius:4px}
+.metrics{gap:4px;margin:5px 0}
+.metric{padding:4px 6px;border-radius:5px}
+.metric .name{font-size:9px;white-space:nowrap}
+.metric .value,.metric .value{font-size:15px;margin-top:0;line-height:1.15}
+.metric .unit{font-size:10px}
+.chartbox{padding:3px;border-radius:5px}
+canvas{height:clamp(95px,calc(100dvh - 115px),230px)}
+.legend{gap:8px;font-size:9px;padding:2px;line-height:1.1}
+.legend span:nth-child(2){display:none}
+.swatch{width:10px;height:5px;margin-right:3px}
+.status{font-size:9px;margin-top:3px;line-height:1.1}
+@media(max-width:550px){.wrap{padding:4px 5px}h1{font-size:12px}.metric{padding:3px 4px}.metric .value{font-size:14px}canvas{height:clamp(85px,calc(100dvh - 105px),190px)}}
+@media(max-width:350px){h1{font-size:11px}.metric .name{font-size:8px}.metric .value{font-size:12px}.controls button{padding:2px 3px}}
 </style>
 </head>
-<body>
-<div id="wrap">
-  <div id="top">
-    <div id="title">WS15 CLOUD COVER — TODAY</div>
-    <div id="status">Loading…</div>
-  </div>
-  <canvas id="c"></canvas>
-</div>
-
+<body><main class="wrap">
+<div class="top"><div><div class="eyebrow">WS15 • South-facing PV • 35° roof</div><h1>Solar generation forecast</h1><div class="sub" id="dayTitle">Loading weather forecast…</div></div><div class="controls"><button id="today" class="active">Today</button><button id="tomorrow">Tomorrow</button><button id="refresh" title="Refresh forecast">↻</button></div></div>
+<div class="metrics"><div class="metric"><div class="name">Forecast energy</div><div class="value" id="kwh">— <span class="unit">kWh</span></div></div><div class="metric"><div class="name">Peak forecast</div><div class="value" id="peak">— <span class="unit">kW</span></div></div><div class="metric"><div class="name">Peak time</div><div class="value" id="peakTime">—</div></div></div>
+<div class="chartbox"><canvas id="chart" aria-label="Forecast solar generation and cloud cover by time" role="img"></canvas><div class="legend"><span><i class="swatch"></i>Estimated AC generation (kW)</span><span><i class="swatch cloud"></i>Forecast cloud cover (grey background, darker = cloudier)</span><span>┊ Current time</span></div></div>
+<div class="details">Forecast model: 6.0 kWp panels • 3.6 kW inverter ceiling • due south • 35° tilt. Cloud cover is shown separately; its effect is already reflected in forecast irradiance, so it is <strong>not</strong> subtracted twice.</div>
+<div id="status" class="status">Loading…</div>
+</main>
 <script>
-const LAT = 52.75;
-const LON = -1.93;
-const TZ  = "Europe/London";
-const API = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=cloud_cover&timezone=${encodeURIComponent(TZ)}&forecast_days=1`;
-
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-const statusEl = document.getElementById('status');
-
-function resize(){
-  const r = canvas.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width = Math.max(1, Math.round(r.width*dpr));
-  canvas.height = Math.max(1, Math.round(r.height*dpr));
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+'use strict';
+// Edit these five constants if your site or system differs.
+const CONFIG={latitude:52.76,longitude:-1.93,timezone:'Europe/London',panelKWp:6.0,inverterKW:3.6,tilt:35,azimuth:0,performanceRatio:0.85};
+// Open-Meteo convention: azimuth 0 = south, -90 = east, +90 = west.
+const API='https://api.open-meteo.com/v1/forecast';
+const $=id=>document.getElementById(id);let selected=0,records=[],lastUpdated=null,lastSource='',lastError='';
+const londonDate=d=>new Intl.DateTimeFormat('en-CA',{timeZone:CONFIG.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
+const londonTime=d=>new Intl.DateTimeFormat('en-GB',{timeZone:CONFIG.timezone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(d);
+const fmtDate=d=>new Intl.DateTimeFormat('en-GB',{timeZone:CONFIG.timezone,weekday:'long',day:'numeric',month:'long'}).format(d);
+function dateParts(d){let p=new Intl.DateTimeFormat('en-GB',{timeZone:CONFIG.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);return Object.fromEntries(p.map(x=>[x.type,x.value]));}
+function shiftDate(ymd,days){const d=new Date(ymd+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)}
+function parseLocalDateTime(s){ // Convert Open-Meteo local wall-clock timestamps to a UTC epoch using the site's timezone.
+ const [date,time]=s.split('T');const [y,m,d]=date.split('-').map(Number);const [hh,mm]=time.split(':').map(Number);const target=Date.UTC(y,m-1,d,hh,mm);let guess=target;for(let i=0;i<3;i++){const parts=new Intl.DateTimeFormat('en-GB',{timeZone:CONFIG.timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(guess));const v=Object.fromEntries(parts.map(x=>[x.type,x.value]));const shown=Date.UTC(+v.year,+v.month-1,+v.day,+v.hour,+v.minute);guess+=target-shown;}return guess;
 }
-window.addEventListener('resize', ()=>{ resize(); if(window.lastData) draw(window.lastData); });
-
-function draw(data){
-  window.lastData = data;
-  resize();
-  const W = canvas.getBoundingClientRect().width;
-  const H = canvas.getBoundingClientRect().height;
-
-  ctx.clearRect(0,0,W,H);
-
-  const ml = 42, mr = 12, mt = 12, mb = 42;
-  const x0 = ml, y0 = mt, x1 = W-mr, y1 = H-mb;
-  const pw = x1-x0, ph = y1-y0;
-
-  // horizontal grid: 0,25,50,75,100 %
-  ctx.font = `${Math.max(11, Math.min(16, W/50))}px Arial`;
-  ctx.textAlign = "right";
-  ctx.textBaseline = "middle";
-  ctx.strokeStyle = "#d9d9d9";
-  ctx.fillStyle = "#444";
-  ctx.lineWidth = 1;
-
-  [0,25,50,75,100].forEach(v=>{
-    const y = y1 - (v/100)*ph;
-    ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x1,y); ctx.stroke();
-    ctx.fillText(v+"%", x0-6, y);
-  });
-
-  const vals = data.hourly.cloud_cover;
-  const times = data.hourly.time.map(t=>new Date(t));
-
-  // vertical time grid and labels every 3 hours
-  ctx.textAlign = "center";
-  ctx.textBaseline = "top";
-  ctx.font = `${Math.max(9, Math.min(13, W/65))}px Arial`;
-  for(let h=0; h<=21; h+=3){
-    const x = x0 + (h/23)*pw;
-    ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1); ctx.stroke();
-    ctx.fillText(String(h).padStart(2,"0")+":00", x, y1+7);
-  }
-
-  // filled cloud-cover area
-  ctx.beginPath();
-  vals.forEach((v,i)=>{
-    const x = x0 + (i/(vals.length-1))*pw;
-    const y = y1 - (v/100)*ph;
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.lineTo(x1,y1); ctx.lineTo(x0,y1); ctx.closePath();
-  ctx.fillStyle = "#b9c7d6";
-  ctx.fill();
-
-  // line
-  ctx.beginPath();
-  vals.forEach((v,i)=>{
-    const x = x0 + (i/(vals.length-1))*pw;
-    const y = y1 - (v/100)*ph;
-    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-  });
-  ctx.strokeStyle = "#4a4a4a";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // current-time marker
-  const now = new Date();
-  const mins = now.getHours()*60 + now.getMinutes();
-  const frac = mins/(24*60-1);
-  if(frac >= 0 && frac <= 1){
-    const x = x0 + frac*pw;
-    ctx.strokeStyle = "#111";
-    ctx.lineWidth = 2;
-    ctx.setLineDash([5,5]);
-    ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = "#111";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
-    ctx.fillText("NOW", Math.min(x1-18,Math.max(x0+18,x)), y0-1);
-  }
-
-  // nearest current cloud cover in status
-  let nearest = 0, best = Infinity;
-  times.forEach((t,i)=>{
-    const d = Math.abs(t-now);
-    if(d<best){best=d;nearest=i;}
-  });
-  statusEl.textContent = `Now ${vals[nearest]}% cloud`;
-}
-
-async function load(){
-  try{
-    statusEl.textContent = "Loading…";
-    const r = await fetch(API, {cache:"no-store"});
-    if(!r.ok) throw new Error("HTTP "+r.status);
-    const data = await r.json();
-    draw(data);
-  }catch(e){
-    statusEl.textContent = "No weather data";
-    console.error(e);
-  }
-}
-
-load();
-setInterval(load, 30*60*1000);
-setInterval(()=>{ if(window.lastData) draw(window.lastData); }, 60*1000);
-</script>
-</body>
-</html>
+function interpolate(rows,t,key){if(!rows.length)return null;if(t<=rows[0].t)return rows[0][key];if(t>=rows.at(-1).t)return rows.at(-1)[key];let lo=0,hi=rows.length-1;while(hi-lo>1){let mid=(lo+hi)>>1;if(rows[mid].t<t)lo=mid;else hi=mid;}let a=rows[lo],b=rows[hi],v=a[key],w=b[key];if(v==null)return w;if(w==null)return v;return v+(w-v)*(t-a.t)/(b.t-a.t);}
+function estimateKW(gti,ambient){if(!Number.isFinite(gti)||gti<=0)return 0;let cell=(Number.isFinite(ambient)?ambient:20)+20*gti/800;let tempFactor=Math.max(.65,1-.004*(cell-25));return Math.max(0,Math.min(CONFIG.inverterKW,CONFIG.panelKWp*gti/1000*CONFIG.performanceRatio*tempFactor));}
+async function load(){const status=$('status');status.classList.remove('error');status.textContent='Fetching Open-Meteo forecast…';let q=new URLSearchParams({latitude:CONFIG.latitude,longitude:CONFIG.longitude,timezone:CONFIG.timezone,forecast_days:3,hourly:'global_tilted_irradiance,cloud_cover,temperature_2m',minutely_15:'global_tilted_irradiance',tilt:CONFIG.tilt,azimuth:CONFIG.azimuth});try{const res=await fetch(API+'?'+q,{cache:'no-store'});if(!res.ok)throw Error('Open-Meteo HTTP '+res.status);const json=await res.json();if(json.error)throw Error(json.reason||'Forecast API error');const h=json.hourly||{},f=json.minutely_15||{};if(!h.time?.length)throw Error('No hourly forecast returned');const hourly=h.time.map((s,i)=>({t:parseLocalDateTime(s),gti:h.global_tilted_irradiance?.[i],cloud:h.cloud_cover?.[i],temp:h.temperature_2m?.[i]}));const fine=(f.time?.length&&f.global_tilted_irradiance?.some(v=>v!=null))?f.time.map((s,i)=>({t:parseLocalDateTime(s),gti:f.global_tilted_irradiance[i]})):null;const base=fine||hourly;records=base.map(x=>({t:x.t,cloud:Math.max(0,Math.min(100,interpolate(hourly,x.t,'cloud')??0)),kw:estimateKW(x.gti??interpolate(hourly,x.t,'gti'),interpolate(hourly,x.t,'temp'))})).sort((a,b)=>a.t-b.t);lastUpdated=new Date();lastSource=fine?'15-minute irradiance':'hourly irradiance (15-minute interpolation)';lastError='';try{localStorage.setItem('solarForecastV2',JSON.stringify({records,lastUpdated:lastUpdated.toISOString(),lastSource}));}catch(e){}render();}catch(e){lastError=e.message;try{if(!records.length){let cache=JSON.parse(localStorage.getItem('solarForecastV2'));records=cache.records;lastUpdated=new Date(cache.lastUpdated);lastSource=cache.lastSource;}}catch(err){}render();}}
+function dayData(){const today=londonDate(new Date()),key=shiftDate(today,selected);return {key,points:records.filter(r=>londonDate(new Date(r.t))===key)}}
+function render(){const {key,points}=dayData();$('today').classList.toggle('active',selected===0);$('tomorrow').classList.toggle('active',selected===1);$('dayTitle').textContent=fmtDate(new Date(key+'T12:00:00Z'));if(!points.length){$('kwh').innerHTML='— <span class="unit">kWh</span>';$('peak').innerHTML='— <span class="unit">kW</span>';$('peakTime').textContent='—';}else{let energy=0;for(let i=1;i<points.length;i++){const delta=(points[i].t-points[i-1].t)/3600000;if(delta>0&&delta<=1.1)energy+=(points[i].kw+points[i-1].kw)/2*delta;}const peak=points.reduce((a,b)=>b.kw>a.kw?b:a);$('kwh').innerHTML=energy.toFixed(1)+' <span class="unit">kWh</span>';$('peak').innerHTML=peak.kw.toFixed(1)+' <span class="unit">kW</span>';$('peakTime').textContent=londonTime(new Date(peak.t));}let s=lastUpdated?'Updated '+londonTime(lastUpdated)+' • '+lastSource+' • Auto-refresh every 30 minutes':'No forecast loaded';if(lastError)s+=' • Fetch failed: '+lastError+(points.length?' (showing cached data)':'');$('status').textContent=s;$('status').classList.toggle('error',!!lastError);draw(points,key);}
+function draw(points,key){const canvas=$('chart'),ctx=canvas.getContext('2d'),rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,2),w=Math.max(rect.width,150),h=Math.max(rect.height,85);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);const left=32,right=7,top=12,bottom=23,pw=w-left-right,ph=h-top-bottom;const X=hour=>left+pw*hour/24,Y=kw=>top+ph*(1-kw/4);ctx.font='9px system-ui';ctx.textAlign='right';ctx.textBaseline='middle';for(let v=0;v<=4;v++){const y=Y(v);ctx.strokeStyle='#34434a';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillStyle='#a2b3bd';ctx.fillText(String(v),left-9,y);}ctx.textAlign='center';ctx.textBaseline='top';for(let hour=0;hour<=24;hour+=(w<420?6:3)){let x=X(hour);ctx.fillStyle='#a2b3bd';ctx.fillText(String(hour).padStart(2,'0')+':00',x,top+ph+8);}if(!points.length){ctx.fillStyle='#a2b3bd';ctx.fillText('No forecast data available',w/2,h/2);return;}const hour=r=>{const p=dateParts(new Date(r.t));return +new Intl.DateTimeFormat('en-GB',{timeZone:CONFIG.timezone,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(r.t)).find(v=>v.type==='hour').value+(+new Intl.DateTimeFormat('en-GB',{timeZone:CONFIG.timezone,minute:'2-digit'}).formatToParts(new Date(r.t)).find(v=>v.type==='minute').value)/60};
+// Cloud opacity is qualitative; it is not an extra generation correction.
+for(let i=0;i<points.length;i++){const p=points[i],x=X(hour(p)),next=points[i+1],end=next?X(hour(next)):Math.min(X(24),x+pw/96);ctx.fillStyle='rgba(125,145,155,'+(0.04+0.47*p.cloud/100).toFixed(3)+')';ctx.fillRect(x,top,Math.max(1,end-x),ph);}
+ctx.beginPath();points.forEach((p,i)=>{const x=X(hour(p)),y=Y(p.kw);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});const last=points.at(-1),first=points[0];ctx.lineTo(X(hour(last)),Y(0));ctx.lineTo(X(hour(first)),Y(0));ctx.closePath();const gradient=ctx.createLinearGradient(0,top,0,top+ph);gradient.addColorStop(0,'rgba(255,212,59,.48)');gradient.addColorStop(1,'rgba(255,212,59,.05)');ctx.fillStyle=gradient;ctx.fill();ctx.beginPath();points.forEach((p,i)=>{const x=X(hour(p)),y=Y(p.kw);i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.strokeStyle='#ffd43b';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();if(key===londonDate(new Date())){const now=new Date(),hh=+londonTime(now).split(':')[0]+(+londonTime(now).split(':')[1])/60,x=X(hh);ctx.setLineDash([4,4]);ctx.strokeStyle='#f2f7fa';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,top+ph);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#fff';ctx.font='bold 10px system-ui';ctx.textAlign=hh>21?'right':'left';ctx.textBaseline='top';ctx.fillText('NOW',x+(hh>21?-4:4),top+2);}}
+$('today').onclick=()=>{selected=0;render()};$('tomorrow').onclick=()=>{selected=1;render()};$('refresh').onclick=load;window.addEventListener('resize',render);setInterval(load,30*60*1000);setInterval(()=>{if(records.length)render()},60*1000);load();
+</script></body></html>
